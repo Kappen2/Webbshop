@@ -6,6 +6,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 public class Connect {
     public static int findCustomer(String firstname, String lastname, String password) throws IOException {
@@ -15,6 +16,7 @@ public class Connect {
 
         try (Connection con = DriverManager.getConnection(p.getProperty("connectionString"), p.getProperty("name"), p.getProperty("password"))) {
             PreparedStatement prep = con.prepareStatement("SELECT id from kund where förnamn = ? and efternamn = ? and lösenord = ?");
+            /*PreparedStatement prep = (firstname,lastname, password) -> {con.prepareStatement("SELECT id from kund where förnamn = "+firstname+" and efternamn = "+lastname+" and lösenord = "+password);};*/
             prep.setString(1, firstname);
             prep.setString(2, lastname);
             prep.setString(3, password);
@@ -82,19 +84,21 @@ public class Connect {
         }
         return chosenProduct;
     }
-    public static void AddToCart(int CustomerId, int orderId, int productId) throws IOException {
+    public static void AddToCart(int customerId, int orderId, int productId) throws IOException {
         Properties p = new Properties();
         p.load(new FileInputStream("src/Skobutik/Settings.properties"));
 
         try (Connection con = DriverManager.getConnection(p.getProperty("connectionString"), p.getProperty("name"), p.getProperty("password"))) {
             CallableStatement call = con.prepareCall("Call AddToCart(?,?,?)");
-            call.execute();
+            call.setInt(1, customerId);
+            call.setInt(2, orderId);
+            call.setInt(3, productId);
+            call.executeQuery();
         }
         catch (SQLException e) {
             System.out.println("Ett fel uppstod");
             throw new RuntimeException(e);
     }
-        System.out.println("Varan har lagts i din varukorg");
     }
     public static int findOrder(int customerId) throws IOException {
 
@@ -110,7 +114,8 @@ public class Connect {
                 orderId = rs.getInt("id");
             }
         } catch (SQLException e) {
-            System.out.println("Ett fel uppstod");
+            Consumer n = t -> System.out.println(t);
+            n.accept("Ett fel uppstod");
             throw new RuntimeException(e);
         }
         return orderId;
